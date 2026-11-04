@@ -100,6 +100,26 @@ svg text{fill:var(--muted);font:11px var(--f-num)}
 .meal .mk{grid-column:2;grid-row:1;font-family:var(--f-num);font-size:13px;color:var(--muted);text-align:right}
 .meal ul{grid-column:1/-1;margin:2px 0 0;padding-left:18px;font-size:14px}
 .meal li .num{color:var(--muted)}
+.chk-l{display:flex;align-items:center;gap:6px;font-size:14px;align-self:end;padding-bottom:9px}
+.chk-l input{width:18px;height:18px;accent-color:var(--kcal)}
+.grid7{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.dcell{background:var(--surface2);border:1.5px solid transparent;border-radius:12px;padding:8px 4px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;font:inherit;color:inherit;min-width:0}
+.dcell[aria-current="true"]{border-color:var(--ink)}
+.dcell .wd{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.mark{font:600 24px/1 var(--f-display);width:36px;height:36px;display:grid;place-items:center;border-radius:50%}
+.m5{color:var(--kcal)} .m4{color:var(--carb)} .m3{color:var(--fat)} .m2{color:var(--prot)} .m0{color:var(--muted);font-size:18px}
+.icons{display:flex;gap:2px;font-size:11px;min-height:14px;flex-wrap:wrap;justify-content:center}
+.big{display:flex;flex-direction:column;gap:12px}
+.big .total{display:flex;align-items:center;gap:12px}
+.big .mark{width:64px;height:64px;font-size:44px;border:2.5px solid currentColor}
+.krit{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;flex:1;min-width:0}
+.mark.sm{width:28px;height:28px;font-size:22px;flex:none}
+.tile.cat{padding:10px 12px}
+.quote{border-left:3px solid var(--carb);padding:4px 0 4px 12px;font-size:14.5px}
+.quote .d{font-size:12px;color:var(--muted);font-family:var(--f-num)}
+.wrow{display:flex;align-items:center;gap:12px;padding:8px 0;border-top:1px solid var(--line)}
+.wrow:first-child{border-top:0}
+.wrow .mark{width:30px;height:30px;font-size:22px}
 .ex{display:flex;flex-direction:column;gap:6px;padding:10px 0;border-top:1px solid var(--line)}
 .ex:first-child{border-top:0}
 .ex .head{display:flex;gap:8px;align-items:center}
@@ -133,11 +153,31 @@ svg text{fill:var(--muted);font:11px var(--f-num)}
   <div class="summary" id="summary"></div>
 
   <nav class="tabs" role="tablist">
+    <button class="tab" role="tab" data-v="grade" id="t-grade">Успеваемость</button>
     <button class="tab" role="tab" data-v="plan" id="t-plan">Программа</button>
     <button class="tab" role="tab" data-v="food" id="t-food">Питание</button>
     <button class="tab" role="tab" data-v="log" id="t-log">Тренировки</button>
     <button class="tab" role="tab" data-v="me" id="t-me">Профиль</button>
   </nav>
+
+  <!-- УСПЕВАЕМОСТЬ -->
+  <section class="view" id="v-grade" hidden>
+    <div class="card" id="weekCard"></div>
+    <div class="card">
+      <div class="row" style="justify-content:space-between"><h2>Отметить день</h2>
+        <div class="dnav"><button class="btn ghost sm" id="cPrev" type="button" aria-label="Предыдущий день">←</button><b id="cLbl"></b><button class="btn ghost sm" id="cNext" type="button" aria-label="Следующий день">→</button></div></div>
+      <form class="row" id="checkForm">
+        <label class="f" style="width:120px">Сон, ч<input id="cSleep" type="number" min="0" max="16" step="0.5" inputmode="decimal"></label>
+        <label class="f" style="width:140px">TikTok, мин<input id="cTt" type="number" min="0" max="1440" step="5" inputmode="numeric"></label>
+        <label class="chk-l"><input type="checkbox" id="cVb"> Волейбол</label>
+        <label class="chk-l"><input type="checkbox" id="cPd"> Падел</label>
+        <button class="btn" type="submit">Отметить</button><span class="small muted" id="cMsg"></span>
+      </form>
+      <p class="small muted" style="margin:0">Зал отмечается сам, когда записываешь тренировку. Калории и белок — по блюдам за день. Время в TikTok смотри в Настройки → Экранное время.</p>
+    </div>
+    <div class="card" id="coachCard"></div>
+    <div class="card"><h3>Оценки по неделям</h3><div id="weeksHist"></div></div>
+  </section>
 
   <!-- ПРОГРАММА -->
   <section class="view" id="v-plan">
@@ -247,7 +287,7 @@ var TODAY=iso(new Date());
 var KEYLS="forma-key";
 
 /* ---------- состояние ---------- */
-var S={profile:null,meals:[],workouts:[],weights:[],day:TODAY,db:null,ok:false};
+var S={profile:null,meals:[],workouts:[],weights:[],days:[],day:TODAY,db:null,ok:false};
 var DEFAULT_PROFILE={sex:"m",age:16,h:null,w:null,goal:"form",lvl:"0",days:"3",place:"gym",pull:null,push:null,act:"0",vb:3,pd:1,wake:"07:00"};
 function prof(){var p=Object.assign({},DEFAULT_PROFILE,S.profile||{});if(!SPLITS_OK(p.days))p.days="3";return p}
 function SPLITS_OK(d){return d==="3"||d==="4"||d===3||d===4}
@@ -341,16 +381,17 @@ function weightFor(key,name,sr,p){
 }
 
 /* ---------- хранилище: data.json из репозитория (вношу я) + записи этого браузера ---------- */
-var LS="forma-local",remote={profile:null,meals:[],workouts:[],weights:[]};
+var LS="forma-local",remote={profile:null,meals:[],workouts:[],weights:[],days:[],notes:[]};
+var COLLS=["meals","workouts","weights","days"];
 var local=(function(){try{return JSON.parse(localStorage.getItem(LS))||{}}catch(e){return {}}})();
-["meals","workouts","weights","hidden"].forEach(function(k){if(!Array.isArray(local[k]))local[k]=[]});
+["meals","workouts","weights","days","hidden"].forEach(function(k){if(!Array.isArray(local[k]))local[k]=[]});
 function persist(){try{localStorage.setItem(LS,JSON.stringify(local))}catch(e){alertMsg("Браузер не даёт сохранять: запись пропадёт после перезагрузки.")}}
 function setSync(t){$("sync").textContent=t}
 function merge(){
   var hid={};local.hidden.forEach(function(h){hid[h]=1});
   var lp=local.profile,rp=remote.profile;
   S.profile=lp&&(!rp||(lp.updatedAt||"")>(rp.updatedAt||""))?lp:rp;
-  ["meals","workouts","weights"].forEach(function(c){
+  COLLS.forEach(function(c){
     var m={};remote[c].concat(local[c]).forEach(function(x){if(!hid[c+"/"+x.id])m[x.id]=x});
     S[c]=Object.keys(m).map(function(k){return m[k]});
   });
@@ -368,8 +409,8 @@ async function remove(coll,id){
 }
 function failMsg(){return "Не сохранилось. Попробуй ещё раз."}
 function unsynced(){
-  var ids={};["meals","workouts","weights"].forEach(function(c){remote[c].forEach(function(x){ids[c+"/"+x.id]=1})});
-  var out={};["meals","workouts","weights"].forEach(function(c){var l=local[c].filter(function(x){return !ids[c+"/"+x.id]});if(l.length)out[c]=l});
+  var ids={};COLLS.forEach(function(c){remote[c].forEach(function(x){ids[c+"/"+x.id]=JSON.stringify(x)})});
+  var out={};COLLS.forEach(function(c){var l=local[c].filter(function(x){return ids[c+"/"+x.id]!==JSON.stringify(x)});if(l.length)out[c]=l});
   if(local.profile&&(!remote.profile||(local.profile.updatedAt||"")>(remote.profile.updatedAt||"")))out.profile=local.profile;
   var hid=local.hidden.filter(function(h){var p=h.split("/");return remote[p[0]]&&remote[p[0]].some(function(x){return x.id===p[1]})});
   if(hid.length)out.hidden=hid;
@@ -603,6 +644,90 @@ function sleepNorm(p){
   var target=r[0]+(sport?1:0);if(target>r[1])target=r[1];
   return {min:r[0],max:r[1],target:target,bed:t(wm-target*60-15),bedLate:t(wm-r[0]*60-15),sport:sport};
 }
+/* ---------- успеваемость: оценки 2–5 за день и неделю ---------- */
+var WD=["Пн","Вт","Ср","Чт","Пт","Сб","Вс"];
+function mark(x){return x==null?0:x>=0.9?5:x>=0.75?4:x>=0.55?3:2}
+var CATS=[["food","Питание","🍽"],["sleep","Сон","😴"],["tt","TikTok","📱"],["gym","Зал","🏋️"],["games","Игры","🏐"]];
+function avg(a){return a.length?a.reduce(function(x,y){return x+y},0)/a.length:null}
+function dayInfo(d){
+  var p=prof(),n=norm(p),t=dayTotals(d),c=S.days.filter(function(x){return x.date===d})[0]||{},sc={},why=[];
+  if(n&&S.meals.some(function(m){return m.date===d})){
+    var rk=t.kcal/n.kcal,kc=rk>=0.9&&rk<=1.1?1:rk>=0.8&&rk<=1.2?0.5:0;
+    var rp=t.p/n.prot,pc=rp>=0.9?1:rp>=0.75?0.5:0;
+    sc.food=(kc+pc)/2;why.push("калории "+r0(rk*100)+"%, белок "+r0(t.p)+"/"+n.prot+" г");
+  }
+  if(c.sleep!=null&&c.sleep!==""){var sl=sleepNorm(p);sc.sleep=c.sleep>=sl.min?1:c.sleep>=sl.min-1?0.5:0;why.push("сон "+String(c.sleep).replace(".",",")+" ч")}
+  if(c.tt!=null&&c.tt!==""){sc.tt=c.tt<=60?1:c.tt<=90?0.5:0;why.push("TikTok "+c.tt+" мин")}
+  var parts=Object.keys(sc).map(function(k){return sc[k]});
+  return {score:avg(parts),sc:sc,why:why,gym:S.workouts.some(function(w){return w.date===d}),vb:!!c.vb,pd:!!c.pd};
+}
+function mondayOf(d){var x=new Date(d+"T12:00:00");x.setDate(x.getDate()-(x.getDay()+6)%7);return iso(x)}
+function weekInfo(mon){
+  var p=prof(),days=[],acc={food:[],sleep:[],tt:[]},gym=0,games=0,elapsed=0;
+  for(var i=0;i<7;i++){var d=addDays(mon,i),inf=dayInfo(d);inf.date=d;days.push(inf);
+    if(d<=TODAY){elapsed++;["food","sleep","tt"].forEach(function(k){if(inf.sc[k]!=null)acc[k].push(inf.sc[k])});if(inf.gym)gym++;games+=(inf.vb?1:0)+(inf.pd?1:0)}}
+  var planGym=+p.days,planGames=(+p.vb||0)+(+p.pd||0),f=elapsed/7,c={};
+  c.food=avg(acc.food);c.sleep=avg(acc.sleep);c.tt=avg(acc.tt);
+  var anyLog=acc.food.length+acc.sleep.length+acc.tt.length+gym+games>0;
+  c.gym=anyLog&&planGym?Math.min(1,gym/Math.max(1,Math.round(planGym*f))):null;
+  c.games=anyLog&&planGames?Math.min(1,games/Math.max(1,Math.round(planGames*f))):null;
+  var parts=CATS.map(function(k){return c[k[0]]}).filter(function(x){return x!=null});
+  return {mon:mon,days:days,cats:c,gym:gym,games:games,planGym:planGym,planGames:planGames,total:avg(parts),elapsed:elapsed,acc:acc};
+}
+var checkDay=TODAY;
+function catDetail(k,w){
+  if(k==="gym")return w.gym+" из "+w.planGym+(w.elapsed<7?" (к этому дню ~"+Math.round(w.planGym*w.elapsed/7)+")":"");
+  if(k==="games")return w.games+" из "+w.planGames+(w.elapsed<7?" (к этому дню ~"+Math.round(w.planGames*w.elapsed/7)+")":"");
+  var n=w.acc[k].length;return n?"отмечено дней: "+n:"нет отметок";
+}
+function renderGrade(){
+  var w=weekInfo(mondayOf(TODAY)),box=$("weekCard");box.innerHTML="";
+  box.appendChild(el("div",{cls:"row",style:"justify-content:space-between"},[el("h2",{text:"Эта неделя"}),el("span",{cls:"small muted num",text:fmtDate(w.mon)+" — "+fmtDate(addDays(w.mon,6))})]));
+  var g=el("div",{cls:"grid7"});
+  w.days.forEach(function(d,i){
+    var m=d.date>TODAY?0:mark(d.score),b=el("button",{cls:"dcell",type:"button","aria-current":String(d.date===checkDay),title:d.why.join(", ")||"Нет отметок"});
+    b.appendChild(el("span",{cls:"wd",text:WD[i]}));
+    b.appendChild(el("span",{cls:"mark m"+m,text:m?String(m):"—"}));
+    b.appendChild(el("span",{cls:"icons",text:(d.gym?"🏋️":"")+(d.vb?"🏐":"")+(d.pd?"🎾":"")}));
+    if(d.date<=TODAY)b.onclick=function(){checkDay=d.date;renderCheck();renderGrade()};else b.disabled=true;
+    g.appendChild(b);
+  });
+  box.appendChild(g);
+  var wm=mark(w.total),big=el("div",{cls:"big"});
+  big.appendChild(el("div",{cls:"total"},[el("span",{cls:"mark m"+wm,text:wm?String(wm):"—"}),el("div",{},[el("h3",{text:"Общая оценка недели"}),el("span",{cls:"small muted",text:w.elapsed<7?"неделя идёт: оценка за прошедшие "+w.elapsed+" дн.":"неделя закрыта"})])]));
+  var k=el("div",{cls:"krit"});
+  CATS.forEach(function(c){var v=w.cats[c[0]],m=mark(v);
+    k.appendChild(el("div",{cls:"tile cat"},[el("div",{cls:"lbl",text:c[2]+" "+c[1]}),el("div",{cls:"row",style:"gap:8px;flex-wrap:nowrap"},[el("span",{cls:"mark sm m"+m,text:m?String(m):"—"}),el("span",{cls:"small muted",text:catDetail(c[0],w)})])]))});
+  big.appendChild(k);box.appendChild(big);
+  box.appendChild(el("p",{cls:"small muted",style:"margin:0",text:"Как ставятся оценки. Питание: калории в пределах ±10% нормы и белок от 90%. Сон: не меньше "+sleepNorm(prof()).min+" ч. TikTok: до 60 минут в день (до 90 — половина балла). Зал и игры: сколько сделано против плана на прошедшие дни недели. Общая — среднее по категориям. 5 — от 90%, 4 — от 75%, 3 — от 55%, ниже — 2."}));
+  renderCoach();renderWeeks();
+}
+function renderCheck(){
+  var c=S.days.filter(function(x){return x.date===checkDay})[0]||{};
+  $("cLbl").textContent=checkDay===TODAY?"Сегодня":fmtDate(checkDay);$("cNext").disabled=checkDay>=TODAY;
+  $("cSleep").value=c.sleep==null?"":c.sleep;$("cTt").value=c.tt==null?"":c.tt;$("cVb").checked=!!c.vb;$("cPd").checked=!!c.pd;$("cMsg").textContent="";
+}
+function renderCoach(){
+  var box=$("coachCard"),notes=(remote.notes||[]).slice().sort(function(a,b){return b.date.localeCompare(a.date)});box.innerHTML="";
+  box.appendChild(el("h2",{text:"Комментарий тренера"}));
+  if(!notes.length){box.appendChild(el("p",{cls:"empty",text:"Здесь будет разбор недели от Claude: что получилось, что подтянуть. Первый — после недели записей."}));return}
+  notes.slice(0,3).forEach(function(n){box.appendChild(el("div",{cls:"quote"},[el("div",{cls:"d",text:fmtDate(n.date)}),el("div",{text:n.text})]))});
+}
+function renderWeeks(){
+  var box=$("weeksHist");box.innerHTML="";var cur=mondayOf(TODAY),any=false;
+  for(var i=1;i<=8;i++){var mon=addDays(cur,-7*i),w=weekInfo(mon);if(w.total==null)continue;any=true;var m=mark(w.total);
+    var chips=el("div",{cls:"chips"});CATS.forEach(function(c){var v=w.cats[c[0]];if(v!=null)chips.appendChild(el("span",{cls:"chip",text:c[2]+" "+mark(v)}))});
+    box.appendChild(el("div",{cls:"wrow"},[el("span",{cls:"mark m"+m,text:String(m)}),el("div",{style:"display:flex;flex-direction:column;gap:4px;min-width:0"},[el("div",{text:fmtDate(mon)+" — "+fmtDate(addDays(mon,6))}),chips])]))}
+  if(!any)box.appendChild(el("p",{cls:"empty",text:"Оценки прошлых недель появятся, когда закончится первая неделя с записями."}));
+}
+$("cPrev").onclick=function(){checkDay=addDays(checkDay,-1);renderCheck();renderGrade()};
+$("cNext").onclick=function(){if(checkDay<TODAY){checkDay=addDays(checkDay,1);renderCheck();renderGrade()}};
+$("checkForm").addEventListener("submit",async function(ev){
+  ev.preventDefault();var v=$("cSleep").value,tt=$("cTt").value;
+  await save("days",{date:checkDay,sleep:v===""?null:+v,tt:tt===""?null:+tt,vb:$("cVb").checked,pd:$("cPd").checked},"d"+checkDay);
+  $("cMsg").textContent="Отмечено.";
+});
+
 /* ---------- вкладка «Профиль» ---------- */
 var FIELDS={pSex:"sex",pAge:"age",pH:"h",pW:"w",pGoal:"goal",pLvl:"lvl",pDays:"days",pPlace:"place",pPull:"pull",pPush:"push",pAct:"act",pVb:"vb",pPd:"pd",pWake:"wake"};
 var NUMS={age:1,h:1,w:1,pull:1,push:1,vb:1,pd:1};
@@ -643,9 +768,9 @@ function renderWeights(){
 }
 
 /* ---------- навигация ---------- */
-var VIEWS=["plan","food","log","me"];
+var VIEWS=["grade","plan","food","log","me"];
 function go(v){
-  if(VIEWS.indexOf(v)<0)v="plan";
+  if(VIEWS.indexOf(v)<0)v="grade";
   VIEWS.forEach(function(x){$("v-"+x).hidden=x!==v;$("t-"+x).setAttribute("aria-selected",x===v)});
   try{history.replaceState(null,"","#"+v)}catch(e){}
 }
@@ -669,7 +794,7 @@ function renderAll(){
   var key=JSON.stringify([prof().days,prof().place,prof().goal,prof().lvl,prof().pull,prof().push]);
   renderPlan();
   if(key!==lastPlanKey){lastPlanKey=key;fillDaySelect();fillWorkout()}
-  renderFood();renderHistory();renderProgress();renderNorm();renderWeights();renderSyncBox();renderDiet();
+  renderFood();renderHistory();renderProgress();renderNorm();renderWeights();renderSyncBox();renderDiet();renderGrade();renderCheck();
 }
 
 /* ---------- старт ---------- */
@@ -694,7 +819,7 @@ async function loadRemote(){
   try{
     var r=await fetch("data.enc.json?"+Date.now(),{cache:"no-store"});if(!r.ok)throw new Error("net");
     var d=await decrypt(await r.json(),pw);
-    remote={profile:d.profile||null,meals:d.meals||[],workouts:d.workouts||[],weights:d.weights||[]};
+    remote={profile:d.profile||null,meals:d.meals||[],workouts:d.workouts||[],weights:d.weights||[],days:d.days||[],notes:d.notes||[]};
     $("keyBox").hidden=true;merge();fillProfileForm();renderAll();
     setSync("Обновлено "+new Date().toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"}));
   }catch(e){
