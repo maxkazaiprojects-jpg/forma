@@ -316,7 +316,27 @@ function scheme(key,p){
   return sets+" × "+reps;
 }
 function program(p){
-  return SPLITS[p.days].map(function(d){return {title:d[0],ex:d[1].map(function(k){return {key:k,name:exName(k,p),sr:scheme(k,p)}})}});
+  return SPLITS[p.days].map(function(d){return {title:d[0],ex:d[1].map(function(k){var n=exName(k,p),sr=scheme(k,p),w=weightFor(k,n,sr,p);return {key:k,name:n,sr:sr,kg:w.kg,wtxt:w.txt}})}});
+}
+/* рабочий вес на ~10 повторов: доля от веса тела для среднего уровня; bb — штанга/блок, db — гантель в каждую руку */
+var WT={squat:[0.75,"bb"],hinge:[0.75,"bb"],hpush:[0.6,"bb"],vpull:[0.65,"bb"],tri:[0.3,"bb"],rot:[0.04,"bb"],
+  hpull:[0.25,"db"],vpush:[0.15,"db"],lunge:[0.15,"db"],hpush2:[0.2,"db"],bic:[0.1,"db"],calf:[0.15,"db1"]};
+function roundKg(x,t){if(t==="bb")return Math.max(2.5,Math.round(x/2.5)*2.5);return Math.max(1,x<10?Math.round(x):Math.round(x/2)*2)}
+function topReps(sr){var m=sr.match(/×\s*(\d+)(?:–(\d+))?/);return m?+(m[2]||m[1]):0}
+function weightFor(key,name,sr,p){
+  var w=WT[key],prev=lastSets(name),top=topReps(sr);
+  if(p.place!=="gym"||!w)return {kg:"",txt:/Приседания с рюкзаком|Сгибания рук с рюкзаком/.test(name)?"рюкзак с книгами":"свой вес"};
+  var t=w[1],per=t==="db"?" в каждой руке":t==="db1"?" в одной руке":"";
+  var pk=prev?Math.max.apply(null,prev.map(function(s){return +s.kg||0})):0;
+  if(pk>0){
+    var all=prev.length&&prev.every(function(s){return +s.reps>=top});
+    var kg=all?roundKg(pk+(t==="bb"?2.5:(pk<10?1:2)),t):pk;
+    return {kg:kg,txt:String(kg).replace(".",",")+" кг"+per+(all?" (↑ прошлый раз сделал всё)":" (как в прошлый раз)")};
+  }
+  if(!(p.w>0))return {kg:"",txt:""};
+  var k=[0.7,1,1.25][+p.lvl]*({str:1.2,cut:0.85}[p.goal]||1);
+  var kg=roundKg(p.w*w[0]*k,t);
+  return {kg:kg,txt:String(kg).replace(".",",")+" кг"+per+" — старт"};
 }
 
 /* ---------- хранилище: data.json из репозитория (вношу я) + записи этого браузера ---------- */
@@ -394,11 +414,12 @@ function renderPlan(){
     (p.vb||p.pd)?el("span",{cls:"chip",text:"игры: "+[p.vb?"волейбол ×"+p.vb:"",p.pd?"падел ×"+p.pd:""].filter(Boolean).join(", ")}):null])]));
   head.appendChild(el("p",{cls:"small",style:"margin:0",text:"Формат «3 × 8–12» значит 3 подхода по 8–12 повторений. Вес бери такой, чтобы последние 1–2 повтора давались тяжело, но без потери техники. "+((+p.vb||0)+(+p.pd||0)>=2&&p.goal!=="cut"?"Отдельное кардио не нужно: выносливость дают игры.":g.extra)}));
   if(p.vb||p.pd)head.appendChild(el("p",{cls:"note",style:"margin:0",text:"С играми: ноги в зале не ставь накануне игры — прыжки и рывки и так нагружают колени и голеностоп. Лучше в день игры после неё или в день без игр. Если ноги «забиты», делай нижнюю часть на 10–20% легче. Прыжковые упражнения не нужны: их даёт волейбол. Внешняя ротация и подъёмы на носки — защита плеча и ахилла, не пропускай их."}));
+  head.appendChild(el("p",{cls:"note",style:"margin:0",text:"Веса с пометкой «старт» — оценка по твоему весу и уровню. Первая тренировка проверочная: если в первом подходе легко сделал больше верхней границы — добавь 2,5–5 кг; если не дотягиваешь до нижней — убери 10%. Дальше сайт сам подсказывает вес по твоим записям."}));
   head.appendChild(el("p",{cls:"note",style:"margin:0",text:"Как расти: когда во всех подходах сделал верх диапазона, в следующий раз добавь 2,5 кг (или возьми более сложный вариант упражнения). Между тренировками одних и тех же мышц — минимум день отдыха."}));
   program(p).forEach(function(d,i){
     var c=el("article",{cls:"day"});
     c.appendChild(el("header",{},[el("h3",{text:"День "+(i+1)+" · "+d.title}),el("span",{cls:"small muted",text:"~"+(d.ex.length*10+10)+" мин"})]));
-    var ol=el("ol");d.ex.forEach(function(x){ol.appendChild(el("li",{},[x.name+" ",vid(x.name),el("span",{cls:"sr",text:x.sr})]))});c.appendChild(ol);
+    var ol=el("ol");d.ex.forEach(function(x){ol.appendChild(el("li",{},[x.name+" ",vid(x.name),el("span",{cls:"sr",text:x.sr+(x.wtxt?" · "+x.wtxt:"")})]))});c.appendChild(ol);
     var b=el("button",{cls:"btn ghost sm",type:"button",text:"Записать эту тренировку"});
     b.onclick=function(){$("wDay").value=String(i);fillWorkout();go("log")};
     c.appendChild(el("footer",{},[b]));days.appendChild(c);
@@ -498,7 +519,7 @@ function lastSets(name){
 function fillWorkout(){
   var v=$("wDay").value,p=prof();
   if(v==="free")draft=[{name:"",sets:[{kg:"",reps:""}]}];
-  else draft=program(p)[+v].ex.map(function(x){var n=+x.sr.split(" × ")[0],prev=lastSets(x.name),sets=[];for(var i=0;i<n;i++)sets.push({kg:prev&&prev[i]?prev[i].kg:"",reps:""});return {name:x.name,sets:sets,hint:x.sr,prev:prev}});
+  else draft=program(p)[+v].ex.map(function(x){var n=+x.sr.split(" × ")[0],prev=lastSets(x.name),sets=[];for(var i=0;i<n;i++)sets.push({kg:x.kg!==""?x.kg:(prev&&prev[i]?prev[i].kg:""),reps:""});return {name:x.name,sets:sets,hint:x.sr+(x.wtxt?" · "+x.wtxt:""),prev:prev}});
   renderDraft();
 }
 function renderDraft(){
@@ -642,7 +663,7 @@ $("wDate").value=TODAY;
 (function(){var h=(location.hash||"").slice(1);
   if(h.indexOf("k=")===0){try{localStorage.setItem(KEYLS,decodeURIComponent(h.slice(2)))}catch(e){}try{history.replaceState(null,"",location.pathname)}catch(e){}h=""}
   go(h)})();
-fillProfileForm();renderAll();
+merge();fillProfileForm();renderAll();
 
 /* данные зашифрованы: ключ приходит один раз в ссылке #k=…, дальше лежит в этом браузере */
 function getKey(){try{return localStorage.getItem(KEYLS)}catch(e){return null}}
