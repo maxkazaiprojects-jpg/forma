@@ -80,6 +80,13 @@ input[type=number]{font-family:var(--f-num)}
 .day li .sr{display:block;font-family:var(--f-num);font-size:12.5px;color:var(--muted)}
 .vid{font-size:12px;font-weight:600;color:var(--prot);text-decoration:none;white-space:nowrap}
 .vid:hover{text-decoration:underline}
+.progs{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
+.prog{text-align:left;font:inherit;color:var(--ink);background:var(--surface2);border:1.5px solid transparent;border-radius:12px;padding:10px 12px;cursor:pointer;display:flex;flex-direction:column;gap:4px}
+.prog b{font:600 15px var(--f-display);text-transform:uppercase;letter-spacing:.03em}
+.prog span{font-size:13px;color:var(--muted);line-height:1.35}
+.prog .sched{font-size:12px;color:var(--ink)}
+.chip.rec{background:var(--l5);color:var(--on-l)}
+.prog.on{border-color:var(--prot);background:var(--surface)}
 .day footer{margin-top:auto;padding:0 14px 12px}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
 .chip{font-size:12.5px;padding:3px 9px;border-radius:99px;background:var(--surface2);color:var(--muted)}
@@ -297,8 +304,8 @@ var KEYLS="forma-key";
 
 /* ---------- состояние ---------- */
 var S={profile:null,meals:[],workouts:[],weights:[],days:[],day:TODAY,db:null,ok:false};
-var DEFAULT_PROFILE={sex:"m",age:16,h:null,w:null,goal:"form",lvl:"0",days:"3",place:"gym",pull:null,push:null,act:"0",vb:3,pd:1,wake:"07:00"};
-function prof(){var p=Object.assign({},DEFAULT_PROFILE,S.profile||{});if(!SPLITS_OK(p.days))p.days="3";return p}
+var DEFAULT_PROFILE={sex:"m",age:16,h:null,w:null,goal:"form",lvl:"0",days:"3",place:"gym",pull:null,push:null,act:"0",vb:3,pd:1,wake:"07:00",split:"fb"};
+function prof(){var p=Object.assign({},DEFAULT_PROFILE,S.profile||{});if(!SPLITS_OK(p.days))p.days="3";if(!PROGRAMS[p.split])p.split="fb";return p}
 function SPLITS_OK(d){return d==="3"||d==="4"||d===3||d===4}
 function hasBody(p){return p.h>0&&p.w>0&&p.age>0}
 
@@ -340,13 +347,29 @@ var EX={
   bic:{gym:"Сгибания рук с гантелями",bars:"Подтягивания обратным хватом",bw:"Сгибания рук с рюкзаком"},
   tri:{gym:"Разгибания на блоке",bars:"Отжимания узким хватом",bw:"Обратные отжимания от стула"},
   rot:{gym:"Внешняя ротация плеча на блоке",bars:"Внешняя ротация плеча с резинкой",bw:"Внешняя ротация лёжа на боку (с бутылкой воды)"},
-  calf:{gym:"Подъёмы на носки на одной ноге с гантелью",bars:"Подъёмы на носки на одной ноге",bw:"Подъёмы на носки на одной ноге"}
+  calf:{gym:"Подъёмы на носки на одной ноге с гантелью",bars:"Подъёмы на носки на одной ноге",bw:"Подъёмы на носки на одной ноге"},
+  split:{gym:"Болгарские сплит-приседания с гантелями",bars:"Болгарские сплит-приседания",bw:"Болгарские сплит-приседания"},
+  ham:{gym:"Сгибания ног в тренажёре",bars:"Скандинавские сгибания (с подстраховкой)",bw:"Ягодичный мост на одной ноге"},
+  hipthr:{gym:"Ягодичный мост со штангой",bars:"Ягодичный мост на одной ноге",bw:"Ягодичный мост на одной ноге"},
+  face:{gym:"Тяга каната к лицу",bars:"Тяга резинки к лицу",bw:"Разведения рук лёжа на животе"},
+  plank:{gym:"Боковая планка",bars:"Боковая планка",bw:"Боковая планка"},
+  core2:{gym:"Паллоф-пресс (антиротация на блоке)",bars:"Паллоф-пресс с резинкой",bw:"Мёртвый жук"}
 };
-var PREHAB={rot:"2 × 15–20, лёгкий вес",calf:"3 × 12–15, медленно вниз"};
+var PREHAB={rot:"2 × 15–20, лёгкий вес",calf:"3 × 12–15, медленно вниз",face:"3 × 15, лёгкий вес",plank:"3 × 30–45 с на сторону",core2:"3 × 10–12 на сторону"};
 var MAIN={squat:1,hinge:1,hpush:1,vpull:1};
-var SPLITS={
-  3:[["Фулбади А",["squat","hpush","hpull","vpush","core","calf"]],["Фулбади Б",["hinge","vpull","lunge","hpush2","rot"]],["Фулбади В",["squat","vpush","vpull","tri","rot","calf"]]],
-  4:[["Верх А",["hpush","hpull","vpush","bic","rot"]],["Низ А",["squat","hinge","calf","core"]],["Верх Б",["vpull","hpush2","hpull","tri","rot"]],["Низ Б",["lunge","hinge","calf","core"]]]
+var PROGRAMS={
+  fb:{name:"Фулбади",desc:"Всё тело за каждую тренировку. Лучший выбор вместе с играми: каждая мышца работает 3–4 раза в неделю, но понемногу, и ноги не «убиты» к волейболу.",
+    3:[["Фулбади А",["squat","hpush","hpull","vpush","core","calf"]],["Фулбади Б",["hinge","vpull","lunge","hpush2","rot"]],["Фулбади В",["squat","vpush","vpull","tri","rot","calf"]]],
+    4:[["Фулбади А",["squat","hpush","hpull","vpush","core","calf"]],["Фулбади Б",["hinge","vpull","lunge","hpush2","rot"]],["Фулбади В",["squat","vpush","vpull","tri","calf"]],["Фулбади Г",["lunge","hpush","hpull","face","plank"]]]},
+  ul:{name:"Верх / Низ",desc:"Один день — руки, грудь, спина и плечи, другой — ноги и кор. Больше объёма на каждую мышцу. Ноги ставь в дни без игр.",
+    3:[["Верх А",["hpush","hpull","vpush","bic","rot"]],["Низ",["squat","hinge","calf","core"]],["Верх Б",["vpull","hpush2","hpull","tri","face"]]],
+    4:[["Верх А",["hpush","hpull","vpush","bic","rot"]],["Низ А",["squat","hinge","calf","core"]],["Верх Б",["vpull","hpush2","hpull","tri","rot"]],["Низ Б",["lunge","hinge","calf","core"]]]},
+  ppl:{name:"Жим / Тяга / Ноги",desc:"Классический сплит: толкающие мышцы, тянущие мышцы, ноги. Подходит для набора массы, если восстановление после игр нормальное.",
+    3:[["Жим",["hpush","vpush","hpush2","tri","rot"]],["Тяга",["vpull","hpull","face","bic","core"]],["Ноги",["squat","hinge","lunge","calf"]]],
+    4:[["Жим",["hpush","vpush","hpush2","tri","rot"]],["Тяга",["vpull","hpull","face","bic","core"]],["Ноги",["squat","hinge","lunge","calf"]],["Верх",["hpush","vpull","vpush","hpull","plank"]]]},
+  vb:{name:"Для волейбола",desc:"Сила ног и задней поверхности бедра, устойчивость корпуса, плеча и колена — для прыжка и подачи. Прыжков нет: их хватает на площадке.",
+    3:[["Сила ног",["squat","split","ham","calf","plank"]],["Верх и плечо",["hpush","vpull","hpull","face","rot"]],["Задняя цепь и кор",["hipthr","hinge","lunge","core2","calf"]]],
+    4:[["Сила ног",["squat","split","ham","calf","plank"]],["Верх и плечо",["hpush","vpull","hpull","face","rot"]],["Задняя цепь и кор",["hipthr","hinge","lunge","core2","calf"]],["Верх Б",["vpush","hpull","hpush2","face","plank"]]]}
 };
 function exName(key,p){
   var n=EX[key][p.place];
@@ -366,11 +389,11 @@ function scheme(key,p){
   return sets+" × "+reps;
 }
 function program(p){
-  return SPLITS[p.days].map(function(d){return {title:d[0],ex:d[1].map(function(k){var n=exName(k,p),sr=scheme(k,p),w=weightFor(k,n,sr,p);return {key:k,name:n,sr:sr,kg:w.kg,wtxt:w.txt}})}});
+  return PROGRAMS[p.split][p.days].map(function(d){return {title:d[0],ex:d[1].map(function(k){var n=exName(k,p),sr=scheme(k,p),w=weightFor(k,n,sr,p);return {key:k,name:n,sr:sr,kg:w.kg,wtxt:w.txt}})}});
 }
 /* рабочий вес на ~10 повторов: доля от веса тела для среднего уровня; bb — штанга/блок, db — гантель в каждую руку */
 var WT={squat:[0.75,"bb"],hinge:[0.75,"bb"],hpush:[0.6,"bb"],vpull:[0.65,"bb"],tri:[0.3,"bb"],rot:[0.04,"bb"],
-  hpull:[0.25,"db"],vpush:[0.15,"db"],lunge:[0.15,"db"],hpush2:[0.2,"db"],bic:[0.1,"db"],calf:[0.15,"db1"]};
+  hpull:[0.25,"db"],split:[0.12,"db"],ham:[0.35,"bb"],hipthr:[0.9,"bb"],face:[0.2,"bb"],core2:[0.12,"bb"],vpush:[0.15,"db"],lunge:[0.15,"db"],hpush2:[0.2,"db"],bic:[0.1,"db"],calf:[0.15,"db1"]};
 function roundKg(x,t){if(t==="bb")return Math.max(2.5,Math.round(x/2.5)*2.5);return Math.max(1,x<10?Math.round(x):Math.round(x/2)*2)}
 function topReps(sr){var m=sr.match(/×\s*(\d+)(?:–(\d+))?/);return m?+(m[2]||m[1]):0}
 function weightFor(key,name,sr,p){
@@ -460,6 +483,18 @@ function renderSummary(){
 function renderPlan(){
   var p=prof(),g=GOALS[p.goal],head=$("planHead"),days=$("days");head.innerHTML="";days.innerHTML="";
   var places={gym:"зал",bars:"турник и брусья",bw:"без инвентаря"};
+  var pick=el("div",{cls:"progs",role:"radiogroup","aria-label":"Тип программы"});
+  var REC={3:"fb",4:"ul"};
+  Object.keys(PROGRAMS).forEach(function(k){var P=PROGRAMS[k],on=p.split===k,days=P[p.days].map(function(d){return d[0]}).join(" · ");
+    var b=el("button",{cls:"prog"+(on?" on":""),type:"button",role:"radio","aria-checked":String(on)},[
+      el("div",{cls:"row",style:"justify-content:space-between;gap:6px"},[el("b",{text:P.name}),REC[p.days]===k?el("span",{cls:"chip rec",text:"советую при "+p.days+" днях"}):null]),
+      el("span",{text:P.desc}),el("span",{cls:"num sched",text:p.days+" дня: "+days})]);
+    b.onclick=function(){if(p.split===k)return;var np=Object.assign({},prof(),{split:k,updatedAt:new Date().toISOString()});local.profile=np;persist();merge();renderAll()};
+    pick.appendChild(b)});
+  var dsel=el("select",{"aria-label":"Тренировок в неделю",style:"width:auto"},[el("option",{value:"3",text:"3 раза в неделю"}),el("option",{value:"4",text:"4 раза в неделю"})]);dsel.value=String(p.days);
+  dsel.onchange=function(){var np=Object.assign({},prof(),{days:dsel.value,updatedAt:new Date().toISOString()});local.profile=np;persist();merge();fillProfileForm();renderAll()};
+  head.appendChild(el("div",{cls:"row",style:"justify-content:space-between"},[el("h2",{text:"Выбери программу"}),dsel]));
+  head.appendChild(pick);
   head.appendChild(el("div",{cls:"row",style:"justify-content:space-between"},[el("h2",{text:"Программа на неделю"}),el("div",{cls:"chips"},[
     el("span",{cls:"chip",text:g.name}),el("span",{cls:"chip",text:p.days+" трен./нед."}),el("span",{cls:"chip",text:places[p.place]}),el("span",{cls:"chip",text:"отдых "+g.rest}),
     (p.vb||p.pd)?el("span",{cls:"chip",text:"игры: "+[p.vb?"волейбол ×"+p.vb:"",p.pd?"падел ×"+p.pd:""].filter(Boolean).join(", ")}):null])]));
@@ -801,7 +836,7 @@ $("mealForm").addEventListener("submit",async function(ev){
 var lastPlanKey="";
 function renderAll(){
   renderSummary();
-  var key=JSON.stringify([prof().days,prof().place,prof().goal,prof().lvl,prof().pull,prof().push]);
+  var key=JSON.stringify([prof().split,prof().days,prof().place,prof().goal,prof().lvl,prof().pull,prof().push]);
   renderPlan();
   if(key!==lastPlanKey){lastPlanKey=key;fillDaySelect();fillWorkout()}
   renderFood();renderHistory();renderProgress();renderNorm();renderWeights();renderSyncBox();renderDiet();renderGrade();renderCheck();
