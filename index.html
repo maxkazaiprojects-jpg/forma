@@ -8,17 +8,20 @@
 <style>
 /* Layout: одна колонка-«журнал», сверху сводка дня, ниже три вкладки. Цвета БЖУ — как цвета олимпийских блинов. */
 :root{
+  --l1:#e0533f; --l2:#f19a3e; --l3:#f2cf4a; --l4:#9fd16a; --l5:#3fae62; --l0:#e3e5df; --on-l:#16181b;
   --bg:#f1f2ee; --surface:#ffffff; --surface2:#e8eae4; --ink:#16181b; --muted:#5e636a; --line:#d9dcd4;
   --kcal:#2c8d4b; --prot:#cc3a2e; --fat:#d9a514; --carb:#2462c4; --warn:#b4541a;
   --btn:#16181b; --btn-ink:#f6f7f3;
   --f-display:"Oswald","Arial Narrow",sans-serif; --f-body:"Golos Text",system-ui,sans-serif; --f-num:"IBM Plex Mono",ui-monospace,monospace;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --l1:#c9483a; --l2:#d9873a; --l3:#d6b43f; --l4:#86b95a; --l5:#349a55; --l0:#2a2e33; --on-l:#101214;
   --bg:#111315; --surface:#1a1d20; --surface2:#24282c; --ink:#eceee9; --muted:#9ba1a8; --line:#2d3236;
   --kcal:#4fbf72; --prot:#ef6457; --fat:#f0c33e; --carb:#5b91ee; --warn:#e48a4c;
   --btn:#eceee9; --btn-ink:#111315; color-scheme:dark;
 }}
 :root[data-theme="dark"]{
+  --l1:#c9483a; --l2:#d9873a; --l3:#d6b43f; --l4:#86b95a; --l5:#349a55; --l0:#2a2e33; --on-l:#101214;
   --bg:#111315; --surface:#1a1d20; --surface2:#24282c; --ink:#eceee9; --muted:#9ba1a8; --line:#2d3236;
   --kcal:#4fbf72; --prot:#ef6457; --fat:#f0c33e; --carb:#5b91ee; --warn:#e48a4c;
   --btn:#eceee9; --btn-ink:#111315; color-scheme:dark;
@@ -105,6 +108,12 @@ svg text{fill:var(--muted);font:11px var(--f-num)}
 .grid7{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
 .dcell{background:var(--surface2);border:1.5px solid transparent;border-radius:12px;padding:8px 4px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;font:inherit;color:inherit;min-width:0}
 .dcell[aria-current="true"]{border-color:var(--ink)}
+.c0{background:var(--l0)} .c1{background:var(--l1)} .c2{background:var(--l2)} .c3{background:var(--l3)} .c4{background:var(--l4)} .c5{background:var(--l5)}
+.dcell.c1,.dcell.c2,.dcell.c3,.dcell.c4,.dcell.c5,.chip.c1,.chip.c2,.chip.c3,.chip.c4,.chip.c5{color:var(--on-l)}
+.dcell.c1 .wd,.dcell.c2 .wd,.dcell.c3 .wd,.dcell.c4 .wd,.dcell.c5 .wd{color:var(--on-l);opacity:.75}
+.dcell .dn{font-size:18px;font-weight:500}
+.sw{width:28px;height:28px;border-radius:8px;flex:none;display:inline-block}
+.big-sw{width:56px;height:56px;border-radius:14px}
 .dcell .wd{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .mark{font:600 24px/1 var(--f-display);width:36px;height:36px;display:grid;place-items:center;border-radius:50%}
 .m5{color:var(--kcal)} .m4{color:var(--carb)} .m3{color:var(--fat)} .m2{color:var(--prot)} .m0{color:var(--muted);font-size:18px}
@@ -646,7 +655,8 @@ function sleepNorm(p){
 }
 /* ---------- успеваемость: оценки 2–5 за день и неделю ---------- */
 var WD=["Пн","Вт","Ср","Чт","Пт","Сб","Вс"];
-function mark(x){return x==null?0:x>=0.9?5:x>=0.75?4:x>=0.55?3:2}
+function mark(x){return x==null?0:x>=0.9?5:x>=0.75?4:x>=0.55?3:x>=0.3?2:1}
+var LVL=["нет отметок","плохо","слабо","средне","хорошо","отлично"];
 var CATS=[["food","Питание","🍽"],["sleep","Сон","😴"],["tt","TikTok","📱"],["gym","Зал","🏋️"],["games","Игры","🏐"]];
 function avg(a){return a.length?a.reduce(function(x,y){return x+y},0)/a.length:null}
 function dayInfo(d){
@@ -685,21 +695,21 @@ function renderGrade(){
   box.appendChild(el("div",{cls:"row",style:"justify-content:space-between"},[el("h2",{text:"Эта неделя"}),el("span",{cls:"small muted num",text:fmtDate(w.mon)+" — "+fmtDate(addDays(w.mon,6))})]));
   var g=el("div",{cls:"grid7"});
   w.days.forEach(function(d,i){
-    var m=d.date>TODAY?0:mark(d.score),b=el("button",{cls:"dcell",type:"button","aria-current":String(d.date===checkDay),title:d.why.join(", ")||"Нет отметок"});
+    var m=d.date>TODAY?0:mark(d.score),b=el("button",{cls:"dcell c"+m,type:"button","aria-current":String(d.date===checkDay),title:LVL[m]+(d.why.length?": "+d.why.join(", "):"")});
     b.appendChild(el("span",{cls:"wd",text:WD[i]}));
-    b.appendChild(el("span",{cls:"mark m"+m,text:m?String(m):"—"}));
+    b.appendChild(el("span",{cls:"dn num",text:String(+d.date.slice(8))}));
     b.appendChild(el("span",{cls:"icons",text:(d.gym?"🏋️":"")+(d.vb?"🏐":"")+(d.pd?"🎾":"")}));
     if(d.date<=TODAY)b.onclick=function(){checkDay=d.date;renderCheck();renderGrade()};else b.disabled=true;
     g.appendChild(b);
   });
   box.appendChild(g);
   var wm=mark(w.total),big=el("div",{cls:"big"});
-  big.appendChild(el("div",{cls:"total"},[el("span",{cls:"mark m"+wm,text:wm?String(wm):"—"}),el("div",{},[el("h3",{text:"Общая оценка недели"}),el("span",{cls:"small muted",text:w.elapsed<7?"неделя идёт: оценка за прошедшие "+w.elapsed+" дн.":"неделя закрыта"})])]));
+  big.appendChild(el("div",{cls:"total"},[el("span",{cls:"sw big-sw c"+wm,title:LVL[wm]}),el("div",{},[el("h3",{text:"Неделя в целом: "+LVL[wm]}),el("span",{cls:"small muted",text:w.elapsed<7?"неделя идёт: считаю по прошедшим "+w.elapsed+" дн.":"неделя закрыта"})])]));
   var k=el("div",{cls:"krit"});
   CATS.forEach(function(c){var v=w.cats[c[0]],m=mark(v);
-    k.appendChild(el("div",{cls:"tile cat"},[el("div",{cls:"lbl",text:c[2]+" "+c[1]}),el("div",{cls:"row",style:"gap:8px;flex-wrap:nowrap"},[el("span",{cls:"mark sm m"+m,text:m?String(m):"—"}),el("span",{cls:"small muted",text:catDetail(c[0],w)})])]))});
+    k.appendChild(el("div",{cls:"tile cat"},[el("div",{cls:"lbl",text:c[2]+" "+c[1]}),el("div",{cls:"row",style:"gap:8px;flex-wrap:nowrap"},[el("span",{cls:"sw c"+m,title:LVL[m]}),el("span",{cls:"small muted",text:catDetail(c[0],w)})])]))});
   big.appendChild(k);box.appendChild(big);
-  box.appendChild(el("p",{cls:"small muted",style:"margin:0",text:"Как ставятся оценки. Питание: калории в пределах ±10% нормы и белок от 90%. Сон: не меньше "+sleepNorm(prof()).min+" ч. TikTok: до 60 минут в день (до 90 — половина балла). Зал и игры: сколько сделано против плана на прошедшие дни недели. Общая — среднее по категориям. 5 — от 90%, 4 — от 75%, 3 — от 55%, ниже — 2."}));
+  box.appendChild(el("p",{cls:"small muted",style:"margin:0",text:"Цвет: зелёный — отлично (от 90%), светло-зелёный — хорошо (от 75%), жёлтый — средне (от 55%), оранжевый — слабо (от 30%), красный — плохо, серый — нет отметок. Питание: калории в пределах ±10% нормы и белок от 90%. Сон: не меньше "+sleepNorm(prof()).min+" ч. TikTok: до 60 минут в день (до 90 — наполовину). Зал и игры: сколько сделано против плана на прошедшие дни недели. Неделя в целом — среднее по категориям."}));
   renderCoach();renderWeeks();
 }
 function renderCheck(){
@@ -716,8 +726,8 @@ function renderCoach(){
 function renderWeeks(){
   var box=$("weeksHist");box.innerHTML="";var cur=mondayOf(TODAY),any=false;
   for(var i=1;i<=8;i++){var mon=addDays(cur,-7*i),w=weekInfo(mon);if(w.total==null)continue;any=true;var m=mark(w.total);
-    var chips=el("div",{cls:"chips"});CATS.forEach(function(c){var v=w.cats[c[0]];if(v!=null)chips.appendChild(el("span",{cls:"chip",text:c[2]+" "+mark(v)}))});
-    box.appendChild(el("div",{cls:"wrow"},[el("span",{cls:"mark m"+m,text:String(m)}),el("div",{style:"display:flex;flex-direction:column;gap:4px;min-width:0"},[el("div",{text:fmtDate(mon)+" — "+fmtDate(addDays(mon,6))}),chips])]))}
+    var chips=el("div",{cls:"chips"});CATS.forEach(function(c){var v=w.cats[c[0]];if(v!=null)chips.appendChild(el("span",{cls:"chip c"+mark(v),text:c[2]+" "+c[1]}))});
+    box.appendChild(el("div",{cls:"wrow"},[el("span",{cls:"sw c"+m,title:LVL[m]}),el("div",{style:"display:flex;flex-direction:column;gap:4px;min-width:0"},[el("div",{text:fmtDate(mon)+" — "+fmtDate(addDays(mon,6))}),chips])]))}
   if(!any)box.appendChild(el("p",{cls:"empty",text:"Оценки прошлых недель появятся, когда закончится первая неделя с записями."}));
 }
 $("cPrev").onclick=function(){checkDay=addDays(checkDay,-1);renderCheck();renderGrade()};
