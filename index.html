@@ -222,6 +222,7 @@ svg text{fill:var(--muted);font:11px var(--f-num)}
         <label class="f">Где занимаюсь<select id="pPlace"><option value="gym">Зал</option><option value="bars">Дома: турник и брусья</option><option value="bw">Дома без инвентаря</option></select></label>
         <label class="f">Подтягивания, макс.<input id="pPull" type="number" min="0" max="60"></label>
         <label class="f">Отжимания, макс.<input id="pPush" type="number" min="0" max="200"></label>
+        <label class="f">Встаю в<input id="pWake" type="time"></label>
         <label class="f">Активность вне зала<select id="pAct"><option value="0">Мало хожу (учёба, сидя)</option><option value="1">Обычно (до 8 тыс. шагов)</option><option value="2">Много хожу или подвижная работа</option></select></label>
       </div>
       <div class="row"><button class="btn" type="submit">Сохранить и пересчитать</button><span class="small muted" id="pMsg"></span></div>
@@ -247,7 +248,7 @@ var KEYLS="forma-key";
 
 /* ---------- состояние ---------- */
 var S={profile:null,meals:[],workouts:[],weights:[],day:TODAY,db:null,ok:false};
-var DEFAULT_PROFILE={sex:"m",age:16,h:null,w:null,goal:"form",lvl:"0",days:"3",place:"gym",pull:null,push:null,act:"0",vb:3,pd:1};
+var DEFAULT_PROFILE={sex:"m",age:16,h:null,w:null,goal:"form",lvl:"0",days:"3",place:"gym",pull:null,push:null,act:"0",vb:3,pd:1,wake:"07:00"};
 function prof(){var p=Object.assign({},DEFAULT_PROFILE,S.profile||{});if(!SPLITS_OK(p.days))p.days="3";return p}
 function SPLITS_OK(d){return d==="3"||d==="4"||d===3||d===4}
 function hasBody(p){return p.h>0&&p.w>0&&p.age>0}
@@ -593,8 +594,17 @@ function lineChart(pts,unit){
   return s+'</svg><p class="small muted" style="margin:4px 0 0">'+unit+'</p>';
 }
 
+/* ---------- сон: рекомендации AASM / National Sleep Foundation по возрасту ---------- */
+function sleepNorm(p){
+  var a=+p.age||16,r=a<13?[9,12]:a<18?[8,10]:a<65?[7,9]:[7,8];
+  var w=(p.wake||"07:00").split(":"),wm=(+w[0])*60+(+w[1]||0);
+  function t(m){m=((m%1440)+1440)%1440;return String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0")}
+  var sport=(+p.vb||0)+(+p.pd||0)+(+p.days||0)>=6;
+  var target=r[0]+(sport?1:0);if(target>r[1])target=r[1];
+  return {min:r[0],max:r[1],target:target,bed:t(wm-target*60-15),bedLate:t(wm-r[0]*60-15),sport:sport};
+}
 /* ---------- вкладка «Профиль» ---------- */
-var FIELDS={pSex:"sex",pAge:"age",pH:"h",pW:"w",pGoal:"goal",pLvl:"lvl",pDays:"days",pPlace:"place",pPull:"pull",pPush:"push",pAct:"act",pVb:"vb",pPd:"pd"};
+var FIELDS={pSex:"sex",pAge:"age",pH:"h",pW:"w",pGoal:"goal",pLvl:"lvl",pDays:"days",pPlace:"place",pPull:"pull",pPush:"push",pAct:"act",pVb:"vb",pPd:"pd",pWake:"wake"};
 var NUMS={age:1,h:1,w:1,pull:1,push:1,vb:1,pd:1};
 function fillProfileForm(){var p=prof();for(var id in FIELDS){var v=p[FIELDS[id]];$(id).value=v==null?"":v}}
 async function saveProfile(ev){
@@ -616,9 +626,14 @@ function renderNorm(){
   [["Калории","--kcal",n.kcal,"ккал"],["Белки","--prot",n.prot,"г"],["Жиры","--fat",n.fat,"г"],["Углеводы","--carb",n.carb,"г"]].forEach(function(r){
     grid.appendChild(el("div",{cls:"tile"},[el("div",{cls:"lbl"},[el("span",{cls:"plate",style:"background:var("+r[1]+")"}),r[0]]),el("div",{cls:"val"},[nf.format(r[2]),el("small",{text:" "+r[3]})])]))});
   c.appendChild(grid);
+  var sl=sleepNorm(p);
+  c.appendChild(el("div",{cls:"tile"},[el("div",{cls:"lbl"},[el("span",{cls:"plate",style:"background:var(--ink)"}),"Сон"]),
+    el("div",{cls:"val"},[sl.target+" ч",el("small",{text:" (норма "+sl.min+"–"+sl.max+" ч)"})]),
+    el("div",{cls:"small",text:"Ложиться в "+sl.bed+", самое позднее в "+sl.bedLate+" (подъём в "+(p.wake||"07:00")+", 15 минут на засыпание)."})]));
   var pct=Math.round((n.k-1)*100);
   c.appendChild(el("p",{cls:"small",style:"margin:0",text:"Обмен в покое "+nf.format(n.bmr)+" ккал (формула Миффлина — Сан Жеора) × "+n.f.toFixed(2).replace(".",",")+" за обычную жизнь, плюс в среднем за день: зал +"+n.gym+(n.vb?", волейбол +"+n.vb:"")+(n.pd?", падел +"+n.pd:"")+" ккал. Итого "+nf.format(n.tdee)+" ккал на поддержание. Под цель «"+GOALS[p.goal].name.toLowerCase()+"» "+(pct===0?"оставляем как есть.":(pct>0?"+":"−")+Math.abs(pct)+"%.")}));
-  if(p.age<18)c.appendChild(el("p",{cls:"note",style:"margin:0",text:"До 18 лет организм ещё растёт: дефицит держим не больше 10%, белок — не меньше 1,6 г на кг, спим 8–9 часов. Формула даёт оценку: взвешивайся раз в неделю утром и, если вес идёт не туда, скажи мне — поправим."}));
+  c.appendChild(el("p",{cls:"note",style:"margin:0",text:"Сон: "+(p.age<18?"в 13–17 лет нужно 8–10 часов. ":"")+(sl.sport?"При твоей нагрузке (зал и игры) бери верхнюю половину нормы: мышцы и связки восстанавливаются во сне. ":"")+"После вечерней игры дай себе 30–60 минут остыть: душ, без экрана в кровати. Ложись и вставай в одно время, в том числе в выходные."}));
+  if(p.age<18)c.appendChild(el("p",{cls:"note",style:"margin:0",text:"До 18 лет организм ещё растёт: дефицит держим не больше 10%, белок — не меньше 1,6 г на кг. Формула даёт оценку: взвешивайся раз в неделю утром и, если вес идёт не туда, скажи мне — поправим."}));
   else c.appendChild(el("p",{cls:"note",style:"margin:0",text:"Формула даёт оценку. Взвешивайся раз в неделю утром натощак; если за 2–3 недели вес идёт не туда, поправим норму на 100–150 ккал."}));
 }
 function renderWeights(){
