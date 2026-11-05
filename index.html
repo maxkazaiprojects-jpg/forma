@@ -353,7 +353,13 @@ var EX={
   hipthr:{gym:"Ягодичный мост со штангой",bars:"Ягодичный мост на одной ноге",bw:"Ягодичный мост на одной ноге"},
   face:{gym:"Тяга каната к лицу",bars:"Тяга резинки к лицу",bw:"Разведения рук лёжа на животе"},
   plank:{gym:"Боковая планка",bars:"Боковая планка",bw:"Боковая планка"},
-  core2:{gym:"Паллоф-пресс (антиротация на блоке)",bars:"Паллоф-пресс с резинкой",bw:"Мёртвый жук"}
+  core2:{gym:"Паллоф-пресс (антиротация на блоке)",bars:"Паллоф-пресс с резинкой",bw:"Мёртвый жук"},
+  latr:{gym:"Махи гантелями в стороны",bars:"Махи в стороны с резинкой",bw:"Махи в стороны с бутылками воды"},
+  fly:{gym:"Сведения рук в тренажёре «бабочка»",bars:"Отжимания с широкой постановкой рук",bw:"Отжимания с широкой постановкой рук"},
+  row2:{gym:"Тяга горизонтального блока",bars:"Австралийские подтягивания широким хватом",bw:"Тяга рюкзака в наклоне"},
+  legpress:{gym:"Жим ногами",bars:"Приседания «пистолетик» с опорой",bw:"Приседания с паузой внизу"},
+  legext:{gym:"Разгибания ног в тренажёре",bars:"Сисси-приседания с опорой",bw:"Сисси-приседания с опорой"},
+  hammer:{gym:"Сгибания рук «молотки» с гантелями",bars:"Сгибания рук с резинкой хватом «молоток»",bw:"Сгибания рук с бутылками воды хватом «молоток»"}
 };
 var PREHAB={rot:"2 × 15–20, лёгкий вес",calf:"3 × 12–15, медленно вниз",face:"3 × 15, лёгкий вес",plank:"3 × 30–45 с на сторону",core2:"3 × 10–12 на сторону"};
 var MAIN={squat:1,hinge:1,hpush:1,vpull:1};
@@ -369,7 +375,16 @@ var PROGRAMS={
     4:[["Жим",["hpush","vpush","hpush2","tri","rot"]],["Тяга",["vpull","hpull","face","bic","core"]],["Ноги",["squat","hinge","lunge","calf"]],["Верх",["hpush","vpull","vpush","hpull","plank"]]]},
   vb:{name:"Для волейбола",desc:"Сила ног и задней поверхности бедра, устойчивость корпуса, плеча и колена — для прыжка и подачи. Прыжков нет: их хватает на площадке.",
     3:[["Сила ног",["squat","split","ham","calf","plank"]],["Верх и плечо",["hpush","vpull","hpull","face","rot"]],["Задняя цепь и кор",["hipthr","hinge","lunge","core2","calf"]]],
-    4:[["Сила ног",["squat","split","ham","calf","plank"]],["Верх и плечо",["hpush","vpull","hpull","face","rot"]],["Задняя цепь и кор",["hipthr","hinge","lunge","core2","calf"]],["Верх Б",["vpush","hpull","hpush2","face","plank"]]]}
+    4:[["Сила ног",["squat","split","ham","calf","plank"]],["Верх и плечо",["hpush","vpull","hpull","face","rot"]],["Задняя цепь и кор",["hipthr","hinge","lunge","core2","calf"]],["Верх Б",["vpush","hpull","hpush2","face","plank"]]]},
+  tl:{name:"Торс / Конечности",desc:"День на грудь, спину и плечи, день на ноги и руки. Руки получают отдельное внимание, а ноги нагружаются реже — удобно при частом волейболе.",
+    3:[["Торс А",["hpush","hpull","vpush","vpull","face"]],["Конечности",["squat","ham","calf","bic","tri"]],["Торс Б",["hpush2","row2","latr","vpull","core"]]],
+    4:[["Торс А",["hpush","hpull","vpush","vpull","face"]],["Конечности А",["squat","ham","calf","bic","tri"]],["Торс Б",["hpush2","row2","latr","vpull","core"]],["Конечности Б",["legpress","hinge","calf","hammer","tri"]]]},
+  ant:{name:"Грудь+Спина / Ноги / Плечи+Руки",desc:"Мышцы-антагонисты в один день: грудь со спиной, плечи с руками. Тренировки короткие и плотные, ноги — один раз (при 4 днях верх дважды).",
+    3:[["Грудь и спина",["hpush","vpull","hpush2","row2","fly"]],["Ноги",["squat","hinge","legext","ham","calf"]],["Плечи и руки",["vpush","latr","face","bic","tri"]]],
+    4:[["Грудь и спина А",["hpush","vpull","hpush2","row2","fly"]],["Ноги",["squat","hinge","legext","ham","calf"]],["Плечи и руки",["vpush","latr","face","bic","tri"]],["Грудь и спина Б",["hpush2","hpull","fly","vpull","plank"]]]},
+  bro:{name:"По группам мышц",desc:"Каждая группа — свой день, максимум объёма на мышцу. Мышца работает раз в неделю, поэтому это больше про рельеф и массу, чем про силу. Ноги — в день без игры.",
+    3:[["Грудь и трицепс",["hpush","hpush2","fly","tri","rot"]],["Спина и бицепс",["vpull","hpull","row2","bic","hammer"]],["Ноги и плечи",["squat","ham","calf","vpush","latr"]]],
+    4:[["Грудь и трицепс",["hpush","hpush2","fly","tri","rot"]],["Спина и бицепс",["vpull","hpull","row2","bic","hammer"]],["Ноги",["squat","legpress","ham","legext","calf"]],["Плечи и руки",["vpush","latr","face","hammer","tri"]]]}
 };
 function exName(key,p){
   var n=EX[key][p.place];
@@ -393,7 +408,8 @@ function program(p){
 }
 /* рабочий вес на ~10 повторов: доля от веса тела для среднего уровня; bb — штанга/блок, db — гантель в каждую руку */
 var WT={squat:[0.75,"bb"],hinge:[0.75,"bb"],hpush:[0.6,"bb"],vpull:[0.65,"bb"],tri:[0.3,"bb"],rot:[0.04,"bb"],
-  hpull:[0.25,"db"],split:[0.12,"db"],ham:[0.35,"bb"],hipthr:[0.9,"bb"],face:[0.2,"bb"],core2:[0.12,"bb"],vpush:[0.15,"db"],lunge:[0.15,"db"],hpush2:[0.2,"db"],bic:[0.1,"db"],calf:[0.15,"db1"]};
+  hpull:[0.25,"db"],split:[0.12,"db"],ham:[0.35,"bb"],hipthr:[0.9,"bb"],face:[0.2,"bb"],core2:[0.12,"bb"],vpush:[0.15,"db"],lunge:[0.15,"db"],hpush2:[0.2,"db"],bic:[0.1,"db"],calf:[0.15,"db1"],
+  latr:[0.08,"db"],fly:[0.35,"bb"],row2:[0.6,"bb"],legpress:[1.5,"bb"],legext:[0.45,"bb"],hammer:[0.12,"db"]};
 function roundKg(x,t){if(t==="bb")return Math.max(2.5,Math.round(x/2.5)*2.5);return Math.max(1,x<10?Math.round(x):Math.round(x/2)*2)}
 function topReps(sr){var m=sr.match(/×\s*(\d+)(?:–(\d+))?/);return m?+(m[2]||m[1]):0}
 function weightFor(key,name,sr,p){
